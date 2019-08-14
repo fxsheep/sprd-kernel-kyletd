@@ -134,4 +134,8 @@ source "drivers/clocksource/Kconfig"
 
 source "drivers/sipc/Kconfig"
 
+source "drivers/gpu/mali/mali/Kconfig"
+
+source "drivers/gpu/mali/ump/Kconfig"
+
 endmenu
