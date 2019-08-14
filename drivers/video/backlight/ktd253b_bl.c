@@ -1,5 +1,5 @@
 /*************** maintained by customer ***************************************/
-#define CONFIG_BACKLIGHT_AMAZING 1
+#define CONFIG_BACKLIGHT_KYLETD 1
 /*
  * linux/drivers/video/backlight/s2c_bl.c
  *
@@ -42,7 +42,7 @@
 //#include <linux/broadcom/PowerManager.h>
 
 int current_intensity;
-static int backlight_pin = 136;
+static int backlight_pin = 138;
 
 static DEFINE_SPINLOCK(bl_ctrl_lock);
 static int lcd_brightness = 0;
@@ -523,7 +523,7 @@ static int ktd253b_backlight_remove(struct platform_device *pdev)
 
 static struct platform_driver ktd253b_backlight_driver = {
 	.driver		= {
-		.name	= "sprd_backlight",
+		.name	= "panel",//"sprd_backlight",
 		.owner	= THIS_MODULE,
 	},
 	.probe		= ktd253b_backlight_probe,

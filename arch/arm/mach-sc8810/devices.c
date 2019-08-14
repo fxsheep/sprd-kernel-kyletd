@@ -184,7 +184,7 @@ struct platform_device sprd_otg_device = {
 };
 
 struct platform_device sprd_backlight_device = {
-	.name           = "sprd_backlight",
+	.name           = "panel", //"sprd_backlight",
 	.id             =  -1,
 };
 
