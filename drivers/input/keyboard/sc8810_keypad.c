@@ -41,6 +41,36 @@ struct sprd_keypad_t *sprd_keypad;
 #define INT_EN                      (SPRD_INTCV_BASE + 0x0008)
 #define INT_DIS                     (SPRD_INTCV_BASE + 0x000C)
 
+/* sys fs  */
+struct class *key_class;
+EXPORT_SYMBOL(key_class);
+struct device *key_dev;
+EXPORT_SYMBOL(key_dev);
+
+static ssize_t key_show(struct device *dev, struct device_attribute *attr, char *buf);
+static DEVICE_ATTR(key_short , S_IRUGO, key_show, NULL);
+
+static ssize_t key_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+    uint8_t keys_pressed;
+    uint8_t default_press = 0x80;
+    int press_check = 0;	
+    unsigned long value = gpio_get_value(ANA_GPI_PB);
+	
+    keys_pressed = keypad_readl(KPD_KEY_STATUS);
+
+    if(keys_pressed & default_press)
+	press_check = 1;	
+
+    if(!value)
+	press_check = 1;	
+	
+    printk("[KEY] Keyshort Press Check ==> keys_pressed : %x,  value :%d\n", keys_pressed, value);
+
+     return sprintf(buf, "%x\n", press_check );
+}
+/* sys fs */
+
 static void dump_keypad_register(void)
 {
 	printk("\nREG_INT_MASK_STS = 0x%08x\n", keypad_readl(INT_MASK_STS));
@@ -65,7 +95,7 @@ static void dump_keypad_register(void)
 	printk("REG_KPD_SLEEP_STATUS = 0x%08x\n",
 	       keypad_readl(KPD_SLEEP_STATUS));
 }
-
+#define KEYPAD_DEBUG 0
 static irqreturn_t sprd_keypad_isr(int irq, void *dev_id)
 {
 	unsigned short key = 0;
@@ -79,9 +109,15 @@ static irqreturn_t sprd_keypad_isr(int irq, void *dev_id)
 
 	if ((int_status & KPD_PRESS_INT0)) {
 		key = KEYCODE(key_status & (KPD0_ROW_CNT | KPD0_COL_CNT));
+#if defined(CONFIG_MACH_KYLETD) || defined(CONFIG_MACH_VASTOI)
+		if(key == 0x0A)
+			key = 0x08;
+#endif
 		input_report_key(sprd_keypad->input, key, 1);
-		input_sync(sprd_keypad->input);
-		printk("%02xD\n", key);
+		input_sync(sprd_keypad->input);		
+#if KEYPAD_DEBUG
+		printk("%02xD1\n", key);
+#endif
 	}
 
 	if ((int_status & KPD_PRESS_INT1)) {
@@ -89,7 +125,9 @@ static irqreturn_t sprd_keypad_isr(int irq, void *dev_id)
 		    KEYCODE((key_status & (KPD1_ROW_CNT | KPD1_COL_CNT)) >> 8);
 		input_report_key(sprd_keypad->input, key, 1);
 		input_sync(sprd_keypad->input);
-		printk("%02xD\n", key);
+#if KEYPAD_DEBUG		
+		printk("%02xD2\n", key);
+#endif
 	}
 
 	if ((int_status & KPD_PRESS_INT2)) {
@@ -97,7 +135,9 @@ static irqreturn_t sprd_keypad_isr(int irq, void *dev_id)
 		    KEYCODE((key_status & (KPD2_ROW_CNT | KPD2_COL_CNT)) >> 16);
 		input_report_key(sprd_keypad->input, key, 1);
 		input_sync(sprd_keypad->input);
-		printk("%02xD\n", key);
+#if KEYPAD_DEBUG		
+		printk("%02xD3\n", key);
+#endif
 	}
 
 	if ((int_status & KPD_PRESS_INT3)) {
@@ -105,14 +145,22 @@ static irqreturn_t sprd_keypad_isr(int irq, void *dev_id)
 		    KEYCODE((key_status & (KPD3_ROW_CNT | KPD3_COL_CNT)) >> 24);
 		input_report_key(sprd_keypad->input, key, 1);
 		input_sync(sprd_keypad->input);
-		printk("%02xD\n", key);
+#if KEYPAD_DEBUG
+		printk("%02xD4\n", key);
+#endif
 	}
 
 	if (int_status & KPD_RELEASE_INT0) {
 		key = KEYCODE(key_status & (KPD0_ROW_CNT | KPD0_COL_CNT));
+#if defined(CONFIG_MACH_KYLETD) || defined(CONFIG_MACH_VASTOI)		
+		if(key == 0x0A)
+			key = 0x08;
+#endif
 		input_report_key(sprd_keypad->input, key, 0);
 		input_sync(sprd_keypad->input);
-		printk("%02xU\n", key);
+#if KEYPAD_DEBUG		
+		printk("%02xU5\n", key);
+#endif
 	}
 
 	if (int_status & KPD_RELEASE_INT1) {
@@ -120,7 +168,9 @@ static irqreturn_t sprd_keypad_isr(int irq, void *dev_id)
 		    KEYCODE((key_status & (KPD1_ROW_CNT | KPD1_COL_CNT)) >> 8);
 		input_report_key(sprd_keypad->input, key, 0);
 		input_sync(sprd_keypad->input);
-		printk("%02xU\n", key);
+#if KEYPAD_DEBUG
+		printk("%02xU6\n", key);
+#endif
 	}
 
 	if (int_status & KPD_RELEASE_INT2) {
@@ -128,7 +178,9 @@ static irqreturn_t sprd_keypad_isr(int irq, void *dev_id)
 		    KEYCODE((key_status & (KPD2_ROW_CNT | KPD2_COL_CNT)) >> 16);
 		input_report_key(sprd_keypad->input, key, 0);
 		input_sync(sprd_keypad->input);
-		printk("%02xU\n", key);
+#if KEYPAD_DEBUG		
+		printk("%02xU7\n", key);
+#endif
 	}
 
 	if (int_status & KPD_RELEASE_INT3) {
@@ -136,7 +188,9 @@ static irqreturn_t sprd_keypad_isr(int irq, void *dev_id)
 		    KEYCODE((key_status & (KPD3_ROW_CNT | KPD3_COL_CNT)) >> 24);
 		input_report_key(sprd_keypad->input, key, 0);
 		input_sync(sprd_keypad->input);
-		printk("%02xU\n", key);
+#if KEYPAD_DEBUG		
+		printk("%02xU8\n", key);
+#endif
 	}
 
 	return IRQ_HANDLED;
@@ -152,21 +206,26 @@ static irqreturn_t sprd_powerkey_isr(int irq, void *dev_id)
 		/* seems an event is missing, just report it */
 		input_report_key(sprd_keypad->input, key, last_value);
 		input_sync(sprd_keypad->input);
-
+#if KEYPAD_DEBUG
 		printk("%dX\n", key);
+#endif
 	}
 
 	if (value) {
 		/* Release : HIGHT level */
 		input_report_key(sprd_keypad->input, key, 0);
 		input_sync(sprd_keypad->input);
+#if KEYPAD_DEBUG		
 		printk("%dU\n", key);
+#endif
 		irq_set_irq_type(irq, IRQF_TRIGGER_LOW);
 	} else {
 		/* Press : LOW level */
 		input_report_key(sprd_keypad->input, key, 1);
 		input_sync(sprd_keypad->input);
+#if KEYPAD_DEBUG
 		printk("%dD\n", key);
+#endif
 		irq_set_irq_type(irq, IRQF_TRIGGER_HIGH);
 	}
 
@@ -197,7 +256,7 @@ static int __devinit sprd_keypad_probe(struct platform_device *pdev)
 	sprd_keypad->irq = platform_get_irq(pdev, 0);
 	if (sprd_keypad->irq < 0) {
 		error = -ENODEV;
-		goto out2;
+		goto Failed_get_irq;
 	}
 
 	sprd_greg_set_bits(REG_TYPE_GLOBAL, SWRST_KPD_RST, GR_SOFT_RST);
@@ -232,19 +291,10 @@ static int __devinit sprd_keypad_probe(struct platform_device *pdev)
 	keypad_writel(KPD_LONG_KEY_CNT, 0xc);
 	keypad_writel(KPD_DEBOUNCE_CNT, 0x5);
 
-	error =
-	    request_irq(sprd_keypad->irq, sprd_keypad_isr, 0, "sprd-keypad",
-			pdev);
-	if (error) {
-		dev_err(&pdev->dev, "unable to claim irq %d\n",
-			sprd_keypad->irq);
-		goto out2;
-	}
-
 	input = input_allocate_device();
 	if (!input) {
 		error = -ENOMEM;
-		goto out3;
+		goto Failed_input_allocate_device;
 	}
 
 	sprd_keypad->input = input;
@@ -274,7 +324,14 @@ static int __devinit sprd_keypad_probe(struct platform_device *pdev)
 	error = input_register_device(input);
 	if (error) {
 		dev_err(&pdev->dev, "unable to register input device\n");
-		goto out4;
+		goto Failed_input_register_device;
+	}
+
+	error = request_irq(sprd_keypad->irq, sprd_keypad_isr, 0, "sprd-keypad", pdev);
+	if (error) {
+		dev_err(&pdev->dev, "unable to claim irq %d\n",
+			sprd_keypad->irq);
+		goto Failed_request_irq;
 	}
 
 	device_init_wakeup(&pdev->dev, 1);
@@ -292,20 +349,35 @@ static int __devinit sprd_keypad_probe(struct platform_device *pdev)
 	if (error) {
 		dev_err(&pdev->dev, "unable to claim irq %d\n",
 			gpio_to_irq(ANA_GPI_PB));
-		goto out2;
+		goto Failed_request_powerkey_irq;
 	}
+        /* sys fs */
+	key_class = class_create(THIS_MODULE, "sec_key");
+	if (IS_ERR(key_class))
+		pr_err("Failed to create class(key)!\n");
+
+	key_dev = device_create(key_class, NULL, 0, NULL, "sec_key_pressed");
+	if (IS_ERR(key_dev))
+		pr_err("Failed to create device(key)!\n");
+
+	if (device_create_file(key_dev, &dev_attr_key_short) < 0)
+		pr_err("Failed to create device file(%s)!\n", dev_attr_key_short.attr.name); 
+	/* sys fs */
 
 	/* dump_keypad_register(); */
 
 	return 0;
 
-out4:
+Failed_request_powerkey_irq:
+    	free_irq(sprd_keypad->irq, pdev);
+Failed_request_irq:
+Failed_input_register_device:    
 	input_free_device(input);
-out3:
-	free_irq(sprd_keypad->irq, pdev);
-out2:
+Failed_input_allocate_device:    
+Failed_get_irq:
 	kfree(sprd_keypad);
 	platform_set_drvdata(pdev, NULL);
+    
 	return error;
 }
 
